@@ -1,0 +1,33 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+CLAUDE.md
+*.pdf
+
+# 本地模型、训练输出和大文件缓存不应直接提交。
+gemma3-270m/
+runs/
+checkpoints/
+*.log
+adapter_*/
+outputs/*.json
+outputs/*.jsonl
+
+# 报告中引用的小型 SVG 对比样例可以提交。
+!outputs/
+!outputs/results_base.json
+!outputs/results_adapter.json
+!outputs/reference_similarity_base.json
+!outputs/reference_similarity_adapter.json
+!outputs/generated_base.jsonl
+!outputs/generated_adapter.jsonl
+!outputs/training_data/
+!outputs/training_data/train_simple_svg.jsonl
+!outputs/examples/
+!outputs/examples/**
+
+# 最终 adapter 需要提交时，请保留 adapter_config.json 和 adapter_model.safetensors。
+adapter/*
+!adapter/.gitkeep
+!adapter/adapter_config.json
+!adapter/adapter_model.safetensors

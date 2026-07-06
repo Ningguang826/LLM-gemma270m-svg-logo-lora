@@ -1,0 +1,223 @@
+{
+  "metadata": {
+    "task": "Gemma 270M SVG Logo LoRA: detailed prompt to SVG logo",
+    "data_repo": "https://github.com/roboticcam/logo-detailed-prompt",
+    "modelscope_model": "google/gemma-3-270m",
+    "model_path": "./gemma3-270m",
+    "final_adapter_path": "./adapter",
+    "baseline_definition": "基线对比采用 Gemma 3 270M 不加载任何 adapter 的基模型，文件名 _base 指 base model 而非 baseline adapter。",
+    "reward_file": "./reward.py",
+    "seed": 42,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_new_tokens": 2048,
+    "eval_command_base": "D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output outputs/results_base.json --generations-path outputs/generated_base.jsonl",
+    "eval_command_adapter": "D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output outputs/results_adapter.json --generations-path outputs/generated_adapter.jsonl",
+    "compare_command_base": "D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl outputs/generated_base.jsonl --output outputs/reference_similarity_base.json",
+    "compare_command_adapter": "D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl outputs/generated_adapter.jsonl --output outputs/reference_similarity_adapter.json",
+    "note": "需在仓库根目录并设 PYTHONPATH=. 运行 student_kit/ 脚本。"
+  },
+  "baseline": {
+    "description": "Gemma 3 270M 基模型（不加载 adapter）",
+    "summary": {
+      "count": 17,
+      "mean_score": 0.018559,
+      "min_score": 0.015,
+      "max_score": 0.0235,
+      "subscores": {
+        "geometry": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "length": {
+          "mean": 0.755882,
+          "min": 0.2,
+          "max": 1.0
+        },
+        "non_degenerate": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "palette": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "prompt_alignment": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "safe_svg": {
+          "mean": 0.026471,
+          "min": 0.0,
+          "max": 0.15
+        },
+        "structure": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "valid_xml": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "viewbox": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    },
+    "reference_similarity": {
+      "count": 17,
+      "mean_color_jaccard": 0.0,
+      "mean_tag_jaccard": 0.0,
+      "mean_structural_tag_jaccard": 0.0,
+      "mean_element_count_pred": 0.0,
+      "mean_element_count_ref": 25.235,
+      "mean_element_count_ratio": 0.0,
+      "pred_gradient_count": 0,
+      "ref_gradient_count": 13,
+      "pred_filter_count": 0,
+      "ref_filter_count": 1,
+      "mean_ref_color_hit_rate": 0.0,
+      "valid_xml_count": 0
+    }
+  },
+  "final_adapter": {
+    "description": "Gemma 3 270M + adapter（r32 + 短 SVG 蒸馏数据）",
+    "summary": {
+      "count": 17,
+      "mean_score": 1.0,
+      "min_score": 1.0,
+      "max_score": 1.0,
+      "subscores": {
+        "geometry": {
+          "mean": 0.993316,
+          "min": 0.977273,
+          "max": 1.0
+        },
+        "length": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "non_degenerate": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "palette": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "prompt_alignment": {
+          "mean": 0.891628,
+          "min": 0.7,
+          "max": 1.0
+        },
+        "safe_svg": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "structure": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "valid_xml": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "viewbox": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        }
+      }
+    },
+    "reference_similarity": {
+      "count": 17,
+      "mean_color_jaccard": 0.176747,
+      "mean_tag_jaccard": 0.716166,
+      "mean_structural_tag_jaccard": 0.710084,
+      "mean_element_count_pred": 15.588,
+      "mean_element_count_ref": 25.235,
+      "mean_element_count_ratio": 0.745916,
+      "pred_gradient_count": 17,
+      "ref_gradient_count": 13,
+      "pred_filter_count": 0,
+      "ref_filter_count": 1,
+      "mean_ref_color_hit_rate": 0.241176,
+      "valid_xml_count": 17
+    }
+  },
+  "comparison": {
+    "reward": [
+      {
+        "model": "基模型",
+        "mean_reward": 0.018559,
+        "valid_xml_count": 0
+      },
+      {
+        "model": "adapter",
+        "mean_reward": 1.0,
+        "valid_xml_count": 17,
+        "prompt_alignment_mean": 0.891628,
+        "prompt_alignment_min": 0.7
+      }
+    ],
+    "reference_similarity": [
+      {
+        "model": "基模型",
+        "color_jaccard": 0.0,
+        "tag_jaccard": 0.0,
+        "structural_tag_jaccard": 0.0,
+        "element_count_pred": 0.0,
+        "gradient_usage": "0/13",
+        "ref_color_hit_rate": 0.0
+      },
+      {
+        "model": "adapter",
+        "color_jaccard": 0.176747,
+        "tag_jaccard": 0.716166,
+        "structural_tag_jaccard": 0.710084,
+        "element_count_pred": 15.588,
+        "gradient_usage": "17/13",
+        "ref_color_hit_rate": 0.241176
+      }
+    ]
+  },
+  "experiments": [
+    {
+      "name": "final_adapter_simple_svg_distillation",
+      "data": "219 条短 SVG 蒸馏目标（频次色优先 + 去 blend + defs/g/linearGradient）",
+      "max_length": 1536,
+      "rank": 32,
+      "alpha": 64,
+      "epochs": 5,
+      "lr_scheduler": "cosine",
+      "warmup_ratio": 0.05,
+      "weight_decay": 0.01,
+      "label_smoothing": 0.05,
+      "mean_reward": 1.0,
+      "valid_xml_count": 17,
+      "prompt_alignment_mean": 0.892,
+      "prompt_alignment_min": 0.7,
+      "mean_color_jaccard_to_reference": 0.177,
+      "mean_tag_jaccard_to_reference": 0.716,
+      "mean_structural_tag_jaccard_to_reference": 0.71,
+      "mean_element_count_pred": 15.59,
+      "gradient_usage": "17/13",
+      "ref_color_hit_rate": 0.241,
+      "conclusion": "最终产物；合法性、reward、结构密度口径表现稳定且相对基模型显著提升；color_jaccard 与 prompt_alignment 最小值受 270M×219 条公开数据的语义到 hex 泛化能力限制，详见 report.md 的 Goodhart 与短板分析。"
+    }
+  ]
+}

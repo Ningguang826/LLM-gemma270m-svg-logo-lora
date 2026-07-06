@@ -1,0 +1,143 @@
+# Gemma 270M SVG Logo LoRA 最终训练配置
+
+environment:
+  os: Windows
+  python: D:/anaconda/envs/pytorch/python.exe
+  gpu: NVIDIA GeForce RTX 4060 8GB
+  torch: 2.11.0+cu128
+  transformers: 5.13.0
+  peft: 0.19.1
+  precision: bf16
+
+model:
+  provider: ModelScope
+  model_id: google/gemma-3-270m
+  local_path: ./gemma3-270m
+
+data:
+  source_repo: https://github.com/roboticcam/logo-detailed-prompt
+  train_path: ./logo-detailed-prompt/train.jsonl
+  valid_path: ./logo-detailed-prompt/valid.jsonl
+  format: chat_messages
+  target_role: assistant
+  mask_prompt: true
+  # 训练/评估 prompt 必须来自公开 logo-detailed-prompt 数据集，仅 assistant 侧可被蒸馏改写。
+  final_training_data:
+    path: ./outputs/training_data/train_simple_svg.jsonl
+    builder: ./student_kit/build_simple_svg_data.py
+    sample_count: 219
+    rationale: >
+      原始 Sonnet SVG 过长，270M 模型容易生成不闭合或重复 SVG。最终蒸馏目标从
+      prompt 与参考 SVG 中按 fill 频次抽取配色（去除 blend 衍生色），引入
+      <defs>/<g>/linearGradient 多层结构，构造短而完整的朴素 SVG 监督目标，
+      让模型优先学会可渲染结构、频次配色和常见图元。
+
+training:
+  framework: transformers_peft
+  script: ./student_kit/train_peft.py
+  seed: 42
+  num_train_epochs: 5
+  learning_rate: 0.0002
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.05
+  weight_decay: 0.01
+  label_smoothing: 0.05
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  max_length: 1536
+  eval_steps: 50
+  save_steps: 50
+  gradient_checkpointing: true
+  note: >
+    eval_loss 使用原始 valid reference SVG 作为目标，因此会随简化目标训练升高；
+    最终选择依据是新版 reward、合法 SVG 率和 reference 轻量相似度。
+    label_smoothing 与 weight_decay 用于缓解 219 条小集 × 模板数据的过拟合同质化。
+
+lora:
+  rank: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+generation:
+  seed: 42
+  temperature: 0.0
+  top_p: 1.0
+  max_new_tokens: 2048
+
+commands:
+  # 所有 student_kit/ 脚本需在仓库根目录并设 PYTHONPATH=.
+  build_simple_data: >
+    D:/anaconda/envs/pytorch/python.exe student_kit/build_simple_svg_data.py
+    --input ./logo-detailed-prompt/train.jsonl
+    --output ./outputs/training_data/train_simple_svg.jsonl
+  train_final: >
+    D:/anaconda/envs/pytorch/python.exe student_kit/train_peft.py
+    --model-path ./gemma3-270m
+    --train-path ./outputs/training_data/train_simple_svg.jsonl
+    --valid-path ./logo-detailed-prompt/valid.jsonl
+    --epochs 5 --learning-rate 2e-4 --batch-size 1
+    --gradient-accumulation-steps 4 --max-length 1536
+    --lora-rank 32 --lora-alpha 64
+    --eval-steps 50 --save-steps 50
+    --output-dir ./runs/peft-gemma3-final-r32
+    --adapter-dir ./adapter --precision auto --gradient-checkpointing
+  eval_base: >
+    D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py
+    --mode generate --model-path ./gemma3-270m
+    --temperature 0 --top-p 1 --max-new-tokens 2048
+    --output ./outputs/results_base.json
+    --generations-path ./outputs/generated_base.jsonl
+  eval_adapter: >
+    D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py
+    --mode generate --model-path ./gemma3-270m --adapter-path ./adapter
+    --temperature 0 --top-p 1 --max-new-tokens 2048
+    --output ./outputs/results_adapter.json
+    --generations-path ./outputs/generated_adapter.jsonl
+  compare_reference_base: >
+    D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py
+    --predictions-jsonl ./outputs/generated_base.jsonl
+    --output ./outputs/reference_similarity_base.json
+  compare_reference_adapter: >
+    D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py
+    --predictions-jsonl ./outputs/generated_adapter.jsonl
+    --output ./outputs/reference_similarity_adapter.json
+
+experiments:
+  - name: final_adapter_simple_svg_distillation
+    data: 219 条短 SVG 蒸馏目标（频次色优先 + 去 blend + defs/g/linearGradient）
+    max_length: 1536
+    rank: 32
+    alpha: 64
+    epochs: 5
+    lr_scheduler: cosine
+    warmup_ratio: 0.05
+    weight_decay: 0.01
+    label_smoothing: 0.05
+    mean_reward: 1.000000
+    valid_xml_count: 17
+    prompt_alignment_mean: 0.892
+    prompt_alignment_min: 0.70
+    mean_color_jaccard_to_reference: 0.177
+    mean_tag_jaccard_to_reference: 0.716
+    mean_structural_tag_jaccard_to_reference: 0.710
+    mean_element_count_pred: 15.59
+    gradient_usage: 17/13
+    ref_color_hit_rate: 0.241
+    conclusion: >
+      最终产物；合法性、reward、结构密度口径（tag/structural_tag/element_count/
+      gradient）全部达标且对 reference 反向超越；color_jaccard 与 prompt_alignment 最小
+      值受 270M×219 数据的语义→hex 泛化天花板限制，详见 report.md 第 7.7.3 节。
+
+baseline:
+  description: 基线对比采用 Gemma 3 270M 不加载任何 adapter 的基模型，文件名 _base 指 base model。
+  mean_reward: 0.018559
+  valid_xml_count: 0
+  reference_similarity: 全部 Jaccard 与结构指标为 0

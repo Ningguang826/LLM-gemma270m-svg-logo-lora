@@ -1,0 +1,40 @@
+# AI Studio 训练命令：
+#   swift sft --config train_swift.yaml
+#
+# 若 ms-swift 版本字段名变化，以 train_config.yaml 中的超参数为准做等价映射。
+model: ./gemma3-270m
+model_type: gemma3
+train_type: lora
+
+dataset:
+  - ./outputs/training_data/train_simple_svg.jsonl
+val_dataset:
+  - ./logo-detailed-prompt/valid.jsonl
+dataset_num_proc: 1
+
+torch_dtype: bfloat16
+max_length: 1536
+num_train_epochs: 5
+learning_rate: 0.0002
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 4
+warmup_ratio: 0.05
+weight_decay: 0.01
+
+lora_rank: 32
+lora_alpha: 64
+lora_dropout: 0.05
+target_modules: all-linear
+
+eval_steps: 50
+save_steps: 50
+save_total_limit: 2
+logging_steps: 5
+output_dir: ./runs/peft-gemma3-final-r32
+seed: 42
+
+# 关键约束：只让 assistant 的 SVG tokens 参与 loss，避免模型学习复述提示词。
+train_dataset_sample: -1
+val_dataset_sample: -1
+loss_scale: last_round
