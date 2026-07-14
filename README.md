@@ -34,6 +34,12 @@
 D:/anaconda/envs/pytorch/python.exe
 ```
 
+依赖已锁定在 `requirements.txt`，可使用当前环境安装：
+
+```powershell
+D:/anaconda/envs/pytorch/python.exe -m pip install -r requirements.txt
+```
+
 关键依赖：
 
 - `torch 2.11.0+cu128`

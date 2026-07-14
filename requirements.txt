@@ -1,0 +1,12 @@
+# Verified runtime for Gemma 270M SVG Logo LoRA (CUDA 12.8)
+# Install with: D:/anaconda/envs/pytorch/python.exe -m pip install -r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cu128
+
+torch==2.11.0+cu128
+transformers==5.13.0
+peft==0.19.1
+accelerate==1.14.0
+sentencepiece==0.2.1
+safetensors==0.8.0
+modelscope==1.38.0
+PyYAML==6.0.3
