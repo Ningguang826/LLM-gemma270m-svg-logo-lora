@@ -1,34 +1,28 @@
-# logo_detailed_prompt — (detailed prompt → SVG logo) training pairs
+# logo-detailed-prompt SVG 数据集
 
-Supervised pairs for teaching a small model to draw an SVG logo from a **detailed
-visual prompt**. Each target SVG was produced by Claude Sonnet from that prompt.
+本目录保存用于 SVG 徽标生成的公开 chat JSONL 数据。每条记录由详细视觉提示词和完整 SVG 响应组成，可直接作为监督微调数据使用。
 
-## Files
+## 文件
 
-| File | Rows | Contents |
-|---|---|---|
-| `train.jsonl` | 219 | training pairs |
-| `valid.jsonl` | 17 | validation pairs |
+| 文件 | 行数 | 内容 |
+|---|---:|---|
+| `train.jsonl` | 219 | 训练样本 |
+| `valid.jsonl` | 17 | 验证样本 |
 
-Each line is one chat-format example:
+每行均为一个 chat 格式样本：
 
 ```json
 {"messages": [
-  {"role": "system",    "content": "<SVG-designer instructions>"},
-  {"role": "user",      "content": "<detailed visual prompt>"},
-  {"role": "assistant", "content": "<complete <svg>…</svg>>"}
+  {"role": "system", "content": "<SVG-designer instructions>"},
+  {"role": "user", "content": "<detailed visual prompt>"},
+  {"role": "assistant", "content": "<complete <svg>...</svg>>"}
 ]}
 ```
 
-- **Input** = the detailed prompt (`user`).
-- **Target** = one complete `<svg …>…</svg>` document (`assistant`), `viewBox="0 0 256 256"`.
-- Train loss should be masked to the assistant (SVG) tokens only.
+- 输入为 `user` 字段中的详细视觉提示词。
+- 目标为 `assistant` 字段中的完整 SVG 文档，使用 `viewBox="0 0 256 256"`。
+- 训练时仅对 assistant 侧的 SVG token 计算损失。
 
-## Provenance
+## 来源
 
-- Built from 275 generated records. After dropping incompletes and repairing
-  malformed SVGs (unbalanced `<g>`, duplicate `</svg>`), **253** valid
-  detailed-prompt → Sonnet-SVG pairs remained; **17** are held out as a private
-  test set (not included here), leaving **236** published.
-- Raw-query augmentation rows are intentionally excluded — these are
-  **detailed-prompt** pairs only.
+数据来源：`https://github.com/roboticcam/logo-detailed-prompt`。本仓库保留其公开训练集和验证集，并在根目录提供适配的训练、评估与奖励函数实现。

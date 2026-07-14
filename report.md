@@ -2,13 +2,13 @@
 
 ## 1. 任务目标
 
-本项目面向“详细提示词 → SVG 徽标”任务，使用 Gemma 3 270M 作为基座模型，通过 LoRA 微调提升其生成有效 SVG 的能力。项目目标强调：270M 模型很小，重点不是打败 Sonnet，而是相对基座模型的提升、reward 设计质量、可复现性和结果分析。
+本项目面向“详细提示词 → SVG 徽标”任务，使用 Gemma 3 270M 作为基座模型，通过 LoRA 微调提升生成有效 SVG 的稳定性，并记录可复现的训练配置、评估结果和局限。
 
-数据来自公开仓库 `https://github.com/roboticcam/logo-detailed-prompt`，本仓库中保留 `logo-detailed-prompt/train.jsonl` 和 `logo-detailed-prompt/valid.jsonl`。实际检查发现公开数据仓库不包含 `student_kit/`，因此本项目按数据格式接口自建了可运行的训练、评估和 reward 代码。
+数据来自公开仓库 `https://github.com/roboticcam/logo-detailed-prompt`，本仓库中保留 `logo-detailed-prompt/train.jsonl` 和 `logo-detailed-prompt/valid.jsonl`，并提供匹配该数据格式的训练、评估和 reward 实现。
 
 ## 2. 最终方法
 
-直接学习原始 Sonnet SVG 时，270M 小模型容易生成不闭合标签、重复 path、异常坐标或超长输出。最终方案将训练目标改为短 SVG 蒸馏目标：从公开训练集的 prompt 和 reference SVG 中提取配色、关键词和常见结构，构造短而闭合、可渲染、结构清晰的 assistant SVG。
+直接学习较长的参考 SVG 时，270M 小模型容易生成不闭合标签、重复 path、异常坐标或超长输出。最终方案将训练目标改为短 SVG 蒸馏目标：从公开训练集的 prompt 和 reference SVG 中提取配色、关键词和常见结构，构造短而闭合、可渲染、结构清晰的 assistant SVG。
 
 最终训练数据为 `outputs/training_data/train_simple_svg.jsonl`，共 219 条。其构造原则是：
 
@@ -82,9 +82,9 @@
 
 相对基模型，最终 adapter 的平均 reward 提升 `+0.968879`，合法 XML 从 `0/17` 提升到 `17/17`。`prompt_alignment` 均值从 0 提升到 `0.891628`。
 
-### Reference 轻量相似度
+### 参考 SVG 轻量相似度
 
-为避免只看自定义 reward，本项目额外计算生成 SVG 与 valid reference SVG 的轻量相似度。该指标不参与训练，仅用于分析 Goodhart 风险：
+除 reward 外，本项目还计算生成 SVG 与 valid reference SVG 的轻量相似度。该指标不参与训练，用于补充检查结构和配色的偏差：
 
 | 指标 | 基模型 | Gemma 3 270M + adapter |
 |---|---:|---:|
@@ -112,14 +112,14 @@
 - 当 prompt 只给自然语言颜色词时，模型常回退到训练中常见的默认暖色组合，导致 color_jaccard 下降。例如 id=8、13 为 0.00。
 - 即使配色不完全匹配，最终 adapter 仍能稳定输出含 `<defs>/<g>/linearGradient` 的合法 SVG，说明结构学习比自然语言颜色到具体 hex 的泛化更可靠。
 
-## 7. Goodhart 风险与短板
+## 7. 指标局限与短板
 
-最终 adapter 的平均自定义 reward 为 `0.986724`（个别样本可得 1.0），但这不等于视觉质量完全达到 reference 或 Sonnet 水平。主要风险包括：
+最终 adapter 的平均自定义 reward 为 `0.986724`（个别样本可得 1.0），但这不代表视觉质量已经与参考 SVG 一致。主要局限包括：
 
 1. **reward 高不等于语义完全对齐**：程序化 reward 能检查合法性、安全性、结构、颜色族和关键词覆盖，但不能完整评价构图审美和复杂语义。
 2. **短 SVG 蒸馏有模板化倾向**：模型生成的是稳定朴素徽标，而不是复杂 reference 复刻。
 3. **配色泛化仍弱**：prompt 含显式 hex 时表现较好；只有自然语言颜色词时，270M 模型在 219 条训练数据上很难稳定推断 reference 实际 hex。
-4. **外部评测可能更重视视觉细节**：冻结指标若包含私有测试集和视觉评审，本项目结果仍可能在复杂语义和审美上失分。
+4. **未覆盖视觉审美**：当前指标没有直接衡量排版平衡、轮廓美感和复杂语义构图，因此这些方面仍需结合示例人工查看。
 
 因此，本项目的结论是：最终 adapter 相对 Gemma 3 270M 基模型有显著、可复现的有效性提升，能够稳定生成合法且结构完整的 SVG；但它仍是“有效但朴素”的徽标生成器，短板主要是自然语言配色泛化和复杂语义构图。
 
@@ -150,7 +150,7 @@
 
 ```powershell
 # 构造短 SVG 蒸馏数据
-D:/anaconda/envs/pytorch/python.exe student_kit/build_simple_svg_data.py --input ./logo-detailed-prompt/train.jsonl --output ./outputs/training_data/train_simple_svg.jsonl
+D:/anaconda/envs/pytorch/python.exe -m student_kit.build_simple_svg_data --input ./logo-detailed-prompt/train.jsonl --output ./outputs/training_data/train_simple_svg.jsonl
 
 # 训练最终 adapter
 D:/anaconda/envs/pytorch/python.exe -m student_kit.train_peft --model-path ./gemma3-270m --train-path ./outputs/training_data/train_simple_svg.jsonl --valid-path ./logo-detailed-prompt/valid.jsonl --epochs 5 --learning-rate 2e-4 --batch-size 1 --gradient-accumulation-steps 4 --max-length 1536 --lora-rank 32 --lora-alpha 64 --eval-steps 50 --save-steps 50 --output-dir ./runs/peft-gemma3-final-r32 --adapter-dir ./adapter --precision auto --gradient-checkpointing
@@ -159,11 +159,11 @@ D:/anaconda/envs/pytorch/python.exe -m student_kit.train_peft --model-path ./gem
 D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_adapter.json --generations-path ./outputs/generated_adapter.jsonl
 
 # adapter reference 相似度对比
-D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_adapter.jsonl --output ./outputs/reference_similarity_adapter.json
+D:/anaconda/envs/pytorch/python.exe -m student_kit.compare_reference --predictions-jsonl ./outputs/generated_adapter.jsonl --output ./outputs/reference_similarity_adapter.json
 
 # 基模型评估
 D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_base.json --generations-path ./outputs/generated_base.jsonl
-D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_base.jsonl --output ./outputs/reference_similarity_base.json
+D:/anaconda/envs/pytorch/python.exe -m student_kit.compare_reference --predictions-jsonl ./outputs/generated_base.jsonl --output ./outputs/reference_similarity_base.json
 ```
 
 本地验证：

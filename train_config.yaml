@@ -27,7 +27,7 @@ data:
     builder: ./student_kit/build_simple_svg_data.py
     sample_count: 219
     rationale: >
-      原始 Sonnet SVG 过长，270M 模型容易生成不闭合或重复 SVG。最终蒸馏目标从
+      原始参考 SVG 过长，270M 模型容易生成不闭合或重复 SVG。最终蒸馏目标从
       prompt 与参考 SVG 中按 fill 频次抽取配色（去除 blend 衍生色），引入
       <defs>/<g>/linearGradient 多层结构，构造短而完整的朴素 SVG 监督目标，
       让模型优先学会可渲染结构、频次配色和常见图元。
@@ -73,9 +73,9 @@ generation:
   max_new_tokens: 2048
 
 commands:
-  # 所有 student_kit/ 脚本需在仓库根目录并设 PYTHONPATH=.
+  # 所有命令均从仓库根目录通过 python -m student_kit.<module> 执行。
   build_simple_data: >
-    D:/anaconda/envs/pytorch/python.exe student_kit/build_simple_svg_data.py
+    D:/anaconda/envs/pytorch/python.exe -m student_kit.build_simple_svg_data
     --input ./logo-detailed-prompt/train.jsonl
     --output ./outputs/training_data/train_simple_svg.jsonl
   train_final: >
@@ -102,11 +102,11 @@ commands:
     --output ./outputs/results_adapter.json
     --generations-path ./outputs/generated_adapter.jsonl
   compare_reference_base: >
-    D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py
+    D:/anaconda/envs/pytorch/python.exe -m student_kit.compare_reference
     --predictions-jsonl ./outputs/generated_base.jsonl
     --output ./outputs/reference_similarity_base.json
   compare_reference_adapter: >
-    D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py
+    D:/anaconda/envs/pytorch/python.exe -m student_kit.compare_reference
     --predictions-jsonl ./outputs/generated_adapter.jsonl
     --output ./outputs/reference_similarity_adapter.json
 
@@ -132,9 +132,9 @@ experiments:
     gradient_usage: 17/13
     ref_color_hit_rate: 0.241
     conclusion: >
-      最终产物；合法性、reward、结构密度口径（tag/structural_tag/element_count/
-      gradient）全部达标且对 reference 反向超越；color_jaccard 与 prompt_alignment 最小
-      值受 270M×219 数据的语义→hex 泛化天花板限制，详见 report.md 第 7.7.3 节。
+      在固定解码设置下，最终 adapter 的合法 XML 率为 17/17，平均 reward 为 0.986724。
+      相比基模型，结构标签相似度明显提升；颜色 Jaccard 和低提示词对齐样本仍显示出
+      自然语言配色与复杂构图的泛化局限，详见 report.md 的“指标局限与短板”。
 
 baseline:
   description: 基线对比采用 Gemma 3 270M 不加载任何 adapter 的基模型，文件名 _base 指 base model。

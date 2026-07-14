@@ -1,11 +1,11 @@
 # Gemma 270M SVG Logo LoRA
 
-本仓库实现“详细提示词 → SVG 徽标”的小模型微调项目：自定义 `reward.py`、LoRA 微调 Gemma 3 270M、基模型/微调自评、reference 轻量相似度评估和报告分析。
+本仓库实现“详细提示词 → SVG 徽标”的 LoRA 微调流程，包含奖励函数、训练脚本、基座模型对照评估、参考 SVG 相似度统计和结果分析。
 
 ## 当前状态
 
 - 数据仓库：`logo-detailed-prompt/`，来自 `https://github.com/roboticcam/logo-detailed-prompt`。
-- 说明：实际 GitHub 数据仓库只包含 `README.md`、`train.jsonl`、`valid.jsonl`，不包含 `student_kit/`；本项目按数据格式接口自建了可运行版本。
+- 说明：训练与验证数据采用其公开的 chat JSONL 格式；本仓库提供配套的训练、评估和奖励函数实现。
 - 基座模型：ModelScope `google/gemma-3-270m`，已下载到 `gemma3-270m/`。
 - 最终 LoRA adapter：`adapter/adapter_config.json` 与 `adapter/adapter_model.safetensors`（r32 + 短 SVG 蒸馏数据）。
 - 基线对比采用基模型（Gemma 3 270M 不加载 adapter），自评产物在 `outputs/results_base.json` / `outputs/results_adapter.json`。
@@ -23,7 +23,7 @@
 - `student_kit/compare_reference.py`：生成 SVG 与 reference 的颜色/tag/结构标签 Jaccard 与 element_count 比值等扩展指标。
 - `train_config.yaml`：最终训练、评估和实验配置。
 - `results.json`：基模型 vs 最终 adapter 的验证集自评汇总与 reference 相似度汇总。
-- `report.md`：优化思路、实验结果、案例和 Goodhart 分析。
+- `report.md`：优化思路、实验结果、案例和指标局限分析。
 - `outputs/examples/`：7 组（id=1/3/5/6/8/12/13）prompt / reference / adapter 对比样例。
 
 ## 环境
@@ -64,7 +64,7 @@ D:/anaconda/envs/pytorch/python.exe -m py_compile reward.py student_kit/reward.p
 ### 构造短 SVG 蒸馏数据
 
 ```powershell
-D:/anaconda/envs/pytorch/python.exe student_kit/build_simple_svg_data.py --input ./logo-detailed-prompt/train.jsonl --output ./outputs/training_data/train_simple_svg.jsonl
+D:/anaconda/envs/pytorch/python.exe -m student_kit.build_simple_svg_data --input ./logo-detailed-prompt/train.jsonl --output ./outputs/training_data/train_simple_svg.jsonl
 ```
 
 ### 最终训练（adapter，r32 / alpha 64 / epochs 5 / cosine + warmup）
@@ -80,11 +80,11 @@ D:/anaconda/envs/pytorch/python.exe -m student_kit.train_peft --model-path ./gem
 D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_adapter.json --generations-path ./outputs/generated_adapter.jsonl
 
 # adapter reference 相似度对比
-D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_adapter.jsonl --output ./outputs/reference_similarity_adapter.json
+D:/anaconda/envs/pytorch/python.exe -m student_kit.compare_reference --predictions-jsonl ./outputs/generated_adapter.jsonl --output ./outputs/reference_similarity_adapter.json
 
 # 基模型对比（用于第 5 节对比表）
 D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_base.json --generations-path ./outputs/generated_base.jsonl
-D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_base.jsonl --output ./outputs/reference_similarity_base.json
+D:/anaconda/envs/pytorch/python.exe -m student_kit.compare_reference --predictions-jsonl ./outputs/generated_base.jsonl --output ./outputs/reference_similarity_base.json
 ```
 
 ## 文件清单
