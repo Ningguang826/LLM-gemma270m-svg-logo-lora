@@ -65,6 +65,19 @@ class RewardTests(unittest.TestCase):
         self.assertLess(result.subscores["prompt_alignment"], 0.55)
         self.assertIn("low_prompt_keyword_coverage", result.reasons)
 
+    def test_partial_subscore_cannot_be_clipped_to_full_reward(self):
+        """权重归一化后，提示词对齐不足不能被其他满分项截断为总分 1。"""
+        svg = (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
+            '<rect x="20" y="20" width="216" height="216" fill="#1B3A5C"/>'
+            '<circle cx="90" cy="128" r="42" fill="#F2A93B"/>'
+            '<circle cx="166" cy="128" r="42" fill="#5DA88E"/>'
+            "</svg>"
+        )
+        result = score_svg(svg, "a five-point star icon")
+        self.assertLess(result.subscores["prompt_alignment"], 1.0)
+        self.assertLess(result.score, 1.0)
+
     def test_repetitive_shapes_detected(self):
         svg = (
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'

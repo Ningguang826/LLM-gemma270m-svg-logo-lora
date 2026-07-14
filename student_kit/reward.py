@@ -211,7 +211,9 @@ def _weighted(subscores: dict[str, float], reasons: list[str]) -> RewardBreakdow
         "prompt_alignment": 0.12,
         "length": 0.02,
     }
-    total = sum(subscores[key] * weight for key, weight in weights.items())
+    # 按权重总和归一化，避免权重调整后总和超过 1 时大量样本被上限截断为满分。
+    total_weight = sum(weights.values())
+    total = sum(subscores[key] * weight for key, weight in weights.items()) / total_weight
     return RewardBreakdown(max(0.0, min(1.0, total)), subscores, reasons)
 
 

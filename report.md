@@ -44,7 +44,7 @@
 - 扩展关键词到 SVG 图元的映射，例如 `hexagon`、`house`、`roof`、`book`、`cup`、`cloud`、`wave`、`sun` 等；
 - 将十六进制颜色映射到颜色族，使 `blue/green/orange/cream/coral` 等自然语言颜色词能与 `#RRGGBB` 输出对应；
 - 对 prompt 中显式给出的 hex 颜色进行命中检查，避免模型完全忽略用户指定配色；
-- 保留 `RewardBreakdown`，输出总分、子分数和原因列表，方便分析失败原因。
+- 保留 `RewardBreakdown`，输出总分、子分数和原因列表，方便分析失败原因；加权总分会除以权重和 `1.04` 归一化到 0-1，避免上限截断掩盖子项差异。
 
 ## 4. 训练配置
 
@@ -77,10 +77,10 @@
 
 | 模型 | 平均 reward | 最小值 | 最大值 | 合法 XML 数量 |
 |---|---:|---:|---:|---:|
-| Gemma 3 270M 基模型 | 0.018559 | 0.015000 | 0.023500 | 0/17 |
-| Gemma 3 270M + adapter | 1.000000 | 1.000000 | 1.000000 | 17/17 |
+| Gemma 3 270M 基模型 | 0.017845 | 0.014423 | 0.022596 | 0/17 |
+| Gemma 3 270M + adapter | 0.986724 | 0.962762 | 1.000000 | 17/17 |
 
-相对基模型，最终 adapter 的平均 reward 提升 `+0.981441`，合法 XML 从 `0/17` 提升到 `17/17`。`prompt_alignment` 均值从 0 提升到 `0.891628`。
+相对基模型，最终 adapter 的平均 reward 提升 `+0.968879`，合法 XML 从 `0/17` 提升到 `17/17`。`prompt_alignment` 均值从 0 提升到 `0.891628`。
 
 ### Reference 轻量相似度
 
@@ -114,7 +114,7 @@
 
 ## 7. Goodhart 风险与短板
 
-最终 adapter 在自定义 reward 上达到满分，但这不等于视觉质量完全达到 reference 或 Sonnet 水平。主要风险包括：
+最终 adapter 的平均自定义 reward 为 `0.986724`（个别样本可得 1.0），但这不等于视觉质量完全达到 reference 或 Sonnet 水平。主要风险包括：
 
 1. **reward 高不等于语义完全对齐**：程序化 reward 能检查合法性、安全性、结构、颜色族和关键词覆盖，但不能完整评价构图审美和复杂语义。
 2. **短 SVG 蒸馏有模板化倾向**：模型生成的是稳定朴素徽标，而不是复杂 reference 复刻。
@@ -153,16 +153,16 @@
 D:/anaconda/envs/pytorch/python.exe student_kit/build_simple_svg_data.py --input ./logo-detailed-prompt/train.jsonl --output ./outputs/training_data/train_simple_svg.jsonl
 
 # 训练最终 adapter
-D:/anaconda/envs/pytorch/python.exe student_kit/train_peft.py --model-path ./gemma3-270m --train-path ./outputs/training_data/train_simple_svg.jsonl --valid-path ./logo-detailed-prompt/valid.jsonl --epochs 5 --learning-rate 2e-4 --batch-size 1 --gradient-accumulation-steps 4 --max-length 1536 --lora-rank 32 --lora-alpha 64 --eval-steps 50 --save-steps 50 --output-dir ./runs/peft-gemma3-final-r32 --adapter-dir ./adapter --precision auto --gradient-checkpointing
+D:/anaconda/envs/pytorch/python.exe -m student_kit.train_peft --model-path ./gemma3-270m --train-path ./outputs/training_data/train_simple_svg.jsonl --valid-path ./logo-detailed-prompt/valid.jsonl --epochs 5 --learning-rate 2e-4 --batch-size 1 --gradient-accumulation-steps 4 --max-length 1536 --lora-rank 32 --lora-alpha 64 --eval-steps 50 --save-steps 50 --output-dir ./runs/peft-gemma3-final-r32 --adapter-dir ./adapter --precision auto --gradient-checkpointing
 
 # adapter 生成 + reward 评分
-D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_adapter.json --generations-path ./outputs/generated_adapter.jsonl
+D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_adapter.json --generations-path ./outputs/generated_adapter.jsonl
 
 # adapter reference 相似度对比
 D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_adapter.jsonl --output ./outputs/reference_similarity_adapter.json
 
 # 基模型评估
-D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_base.json --generations-path ./outputs/generated_base.jsonl
+D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_base.json --generations-path ./outputs/generated_base.jsonl
 D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_base.jsonl --output ./outputs/reference_similarity_base.json
 ```
 

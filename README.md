@@ -9,7 +9,7 @@
 - 基座模型：ModelScope `google/gemma-3-270m`，已下载到 `gemma3-270m/`。
 - 最终 LoRA adapter：`adapter/adapter_config.json` 与 `adapter/adapter_model.safetensors`（r32 + 短 SVG 蒸馏数据）。
 - 基线对比采用基模型（Gemma 3 270M 不加载 adapter），自评产物在 `outputs/results_base.json` / `outputs/results_adapter.json`。
-- 最终自评（valid 17 条，temperature 0）：基模型平均 reward `0.018559`、0/17 合法 XML；`adapter` 平均 reward `1.000000`、17/17 合法 XML、`prompt_alignment` 均值 `0.892`。
+- 最终自评（valid 17 条，temperature 0）：基模型平均 reward `0.017845`、0/17 合法 XML；`adapter` 平均 reward `0.986724`、17/17 合法 XML、`prompt_alignment` 均值 `0.892`。
 - Reference 轻量相似度：`adapter` 颜色 Jaccard `0.177`、tag Jaccard `0.716`、structural_tag Jaccard `0.710`、element_count_pred `15.59`；基模型全部为 0。详见 `report.md` 第 5 节。
 
 ## 主要文件
@@ -46,7 +46,7 @@ D:/anaconda/envs/pytorch/python.exe
 
 ## 复现命令
 
-仓库根目录执行（`student_kit/` 脚本依赖 `PYTHONPATH=.`）。
+仓库根目录执行。涉及 `student_kit` 包内导入的训练与评估脚本使用 `-m student_kit.<模块名>` 运行。
 
 ### 测试
 
@@ -64,20 +64,20 @@ D:/anaconda/envs/pytorch/python.exe student_kit/build_simple_svg_data.py --input
 ### 最终训练（adapter，r32 / alpha 64 / epochs 5 / cosine + warmup）
 
 ```powershell
-D:/anaconda/envs/pytorch/python.exe student_kit/train_peft.py --model-path ./gemma3-270m --train-path ./outputs/training_data/train_simple_svg.jsonl --valid-path ./logo-detailed-prompt/valid.jsonl --epochs 5 --learning-rate 2e-4 --batch-size 1 --gradient-accumulation-steps 4 --max-length 1536 --lora-rank 32 --lora-alpha 64 --eval-steps 50 --save-steps 50 --output-dir ./runs/peft-gemma3-final-r32 --adapter-dir ./adapter --precision auto --gradient-checkpointing
+D:/anaconda/envs/pytorch/python.exe -m student_kit.train_peft --model-path ./gemma3-270m --train-path ./outputs/training_data/train_simple_svg.jsonl --valid-path ./logo-detailed-prompt/valid.jsonl --epochs 5 --learning-rate 2e-4 --batch-size 1 --gradient-accumulation-steps 4 --max-length 1536 --lora-rank 32 --lora-alpha 64 --eval-steps 50 --save-steps 50 --output-dir ./runs/peft-gemma3-final-r32 --adapter-dir ./adapter --precision auto --gradient-checkpointing
 ```
 
 ### 最终评估（生成 + reward + reference 相似度）
 
 ```powershell
 # adapter 生成 + reward 评分
-D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_adapter.json --generations-path ./outputs/generated_adapter.jsonl
+D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_adapter.json --generations-path ./outputs/generated_adapter.jsonl
 
 # adapter reference 相似度对比
 D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_adapter.jsonl --output ./outputs/reference_similarity_adapter.json
 
 # 基模型对比（用于第 5 节对比表）
-D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_base.json --generations-path ./outputs/generated_base.jsonl
+D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output ./outputs/results_base.json --generations-path ./outputs/generated_base.jsonl
 D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl ./outputs/generated_base.jsonl --output ./outputs/reference_similarity_base.json
 ```
 

@@ -11,19 +11,20 @@
     "temperature": 0.0,
     "top_p": 1.0,
     "max_new_tokens": 2048,
-    "eval_command_base": "D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output outputs/results_base.json --generations-path outputs/generated_base.jsonl",
-    "eval_command_adapter": "D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output outputs/results_adapter.json --generations-path outputs/generated_adapter.jsonl",
+    "eval_command_base": "D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --temperature 0 --top-p 1 --max-new-tokens 2048 --output outputs/results_base.json --generations-path outputs/generated_base.jsonl",
+    "eval_command_adapter": "D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self --mode generate --model-path ./gemma3-270m --adapter-path ./adapter --temperature 0 --top-p 1 --max-new-tokens 2048 --output outputs/results_adapter.json --generations-path outputs/generated_adapter.jsonl",
     "compare_command_base": "D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl outputs/generated_base.jsonl --output outputs/reference_similarity_base.json",
     "compare_command_adapter": "D:/anaconda/envs/pytorch/python.exe student_kit/compare_reference.py --predictions-jsonl outputs/generated_adapter.jsonl --output outputs/reference_similarity_adapter.json",
-    "note": "需在仓库根目录并设 PYTHONPATH=. 运行 student_kit/ 脚本。"
+    "note": "需在仓库根目录并设 PYTHONPATH=. 运行 student_kit/ 脚本。",
+    "reward_score_normalization": "加权和除以权重总和 1.04 后归一化到 0-1；避免上限截断掩盖子项差异。"
   },
   "baseline": {
     "description": "Gemma 3 270M 基模型（不加载 adapter）",
     "summary": {
       "count": 17,
-      "mean_score": 0.018559,
-      "min_score": 0.015,
-      "max_score": 0.0235,
+      "mean_score": 0.017845,
+      "min_score": 0.014423,
+      "max_score": 0.022596,
       "subscores": {
         "geometry": {
           "mean": 0.0,
@@ -92,8 +93,8 @@
     "description": "Gemma 3 270M + adapter（r32 + 短 SVG 蒸馏数据）",
     "summary": {
       "count": 17,
-      "mean_score": 1.0,
-      "min_score": 1.0,
+      "mean_score": 0.986724,
+      "min_score": 0.962762,
       "max_score": 1.0,
       "subscores": {
         "geometry": {
@@ -163,12 +164,12 @@
     "reward": [
       {
         "model": "基模型",
-        "mean_reward": 0.018559,
+        "mean_reward": 0.017845,
         "valid_xml_count": 0
       },
       {
         "model": "adapter",
-        "mean_reward": 1.0,
+        "mean_reward": 0.986724,
         "valid_xml_count": 17,
         "prompt_alignment_mean": 0.891628,
         "prompt_alignment_min": 0.7
@@ -207,7 +208,7 @@
       "warmup_ratio": 0.05,
       "weight_decay": 0.01,
       "label_smoothing": 0.05,
-      "mean_reward": 1.0,
+      "mean_reward": 0.986724,
       "valid_xml_count": 17,
       "prompt_alignment_mean": 0.892,
       "prompt_alignment_min": 0.7,

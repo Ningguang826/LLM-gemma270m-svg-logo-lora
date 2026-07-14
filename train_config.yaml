@@ -79,7 +79,7 @@ commands:
     --input ./logo-detailed-prompt/train.jsonl
     --output ./outputs/training_data/train_simple_svg.jsonl
   train_final: >
-    D:/anaconda/envs/pytorch/python.exe student_kit/train_peft.py
+    D:/anaconda/envs/pytorch/python.exe -m student_kit.train_peft
     --model-path ./gemma3-270m
     --train-path ./outputs/training_data/train_simple_svg.jsonl
     --valid-path ./logo-detailed-prompt/valid.jsonl
@@ -90,13 +90,13 @@ commands:
     --output-dir ./runs/peft-gemma3-final-r32
     --adapter-dir ./adapter --precision auto --gradient-checkpointing
   eval_base: >
-    D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py
+    D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self
     --mode generate --model-path ./gemma3-270m
     --temperature 0 --top-p 1 --max-new-tokens 2048
     --output ./outputs/results_base.json
     --generations-path ./outputs/generated_base.jsonl
   eval_adapter: >
-    D:/anaconda/envs/pytorch/python.exe student_kit/eval_self.py
+    D:/anaconda/envs/pytorch/python.exe -m student_kit.eval_self
     --mode generate --model-path ./gemma3-270m --adapter-path ./adapter
     --temperature 0 --top-p 1 --max-new-tokens 2048
     --output ./outputs/results_adapter.json
@@ -121,7 +121,7 @@ experiments:
     warmup_ratio: 0.05
     weight_decay: 0.01
     label_smoothing: 0.05
-    mean_reward: 1.000000
+    mean_reward: 0.986724
     valid_xml_count: 17
     prompt_alignment_mean: 0.892
     prompt_alignment_min: 0.70
@@ -138,6 +138,6 @@ experiments:
 
 baseline:
   description: 基线对比采用 Gemma 3 270M 不加载任何 adapter 的基模型，文件名 _base 指 base model。
-  mean_reward: 0.018559
+  mean_reward: 0.017845
   valid_xml_count: 0
   reference_similarity: 全部 Jaccard 与结构指标为 0
